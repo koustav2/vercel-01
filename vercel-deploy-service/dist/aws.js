@@ -29,31 +29,29 @@ function downloadS3Folder(prefix) {
             Bucket: "vercel",
             Prefix: prefix
         }).promise();
-        const allPromises = ((_a = allFiles.Contents) === null || _a === void 0 ? void 0 : _a.map(({ Key }) => {
-            if (!Key)
-                return Promise.resolve("");
-            const finalOutputPath = path_1.default.join(__dirname, Key);
-            const dirName = path_1.default.dirname(finalOutputPath);
-            // Ensure directory exists
-            if (!fs_1.default.existsSync(dirName))
-                fs_1.default.mkdirSync(dirName, { recursive: true });
-            // Return a promise that resolves when stream ends
-            return new Promise((resolve, reject) => {
+        // 
+        const allPromises = ((_a = allFiles.Contents) === null || _a === void 0 ? void 0 : _a.map(({ Key }) => __awaiter(this, void 0, void 0, function* () {
+            return new Promise((resolve) => __awaiter(this, void 0, void 0, function* () {
+                if (!Key) {
+                    resolve("");
+                    return;
+                }
+                const finalOutputPath = path_1.default.join(__dirname, Key);
                 const outputFile = fs_1.default.createWriteStream(finalOutputPath);
-                s3.getObject({ Bucket: "vercel", Key })
-                    .createReadStream()
-                    .pipe(outputFile)
-                    .on("finish", () => resolve(""))
-                    .on("error", reject); // Reject on error
-            });
-        })) || [];
-        console.log("Awaiting...");
-        try {
-            yield Promise.all(allPromises);
-        }
-        catch (err) {
-            console.error(err);
-        }
+                const dirName = path_1.default.dirname(finalOutputPath);
+                if (!fs_1.default.existsSync(dirName)) {
+                    fs_1.default.mkdirSync(dirName, { recursive: true });
+                }
+                s3.getObject({
+                    Bucket: "vercel",
+                    Key
+                }).createReadStream().pipe(outputFile).on("finish", () => {
+                    resolve("");
+                });
+            }));
+        }))) || [];
+        console.log("awaiting");
+        yield Promise.all(allPromises === null || allPromises === void 0 ? void 0 : allPromises.filter(x => x !== undefined));
     });
 }
 exports.downloadS3Folder = downloadS3Folder;
@@ -86,5 +84,5 @@ const uploadFile = (fileName, localFilePath) => __awaiter(void 0, void 0, void 0
         Bucket: "vercel",
         Key: fileName,
     }).promise();
-    return response;
+    console.log(response);
 });

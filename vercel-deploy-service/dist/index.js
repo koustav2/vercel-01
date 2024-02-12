@@ -12,7 +12,6 @@ Object.defineProperty(exports, "__esModule", { value: true });
 const redis_1 = require("redis");
 const aws_1 = require("./aws");
 const utils_1 = require("./utils");
-// import { buildProject } from "./utils";
 const subscriber = (0, redis_1.createClient)();
 subscriber.connect();
 const publisher = (0, redis_1.createClient)();
@@ -22,13 +21,10 @@ function main() {
         while (1) {
             const res = yield subscriber.brPop((0, redis_1.commandOptions)({ isolated: true }), 'build-queue', 0);
             // @ts-ignore;
-            const id = res === null || res === void 0 ? void 0 : res.element;
+            const id = res.element;
             yield (0, aws_1.downloadS3Folder)(`output/${id}`);
-            console.log("Downloaded");
             yield (0, utils_1.buildProject)(id);
-            console.log("Built");
             (0, aws_1.copyFinalDist)(id);
-            console.log("Copied");
             publisher.hSet("status", id, "deployed");
         }
     });

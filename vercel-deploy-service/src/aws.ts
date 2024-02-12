@@ -15,36 +15,32 @@ export async function downloadS3Folder(prefix: string) {
         Bucket: "vercel",
         Prefix: prefix
     }).promise();
-    const allPromises = allFiles.Contents?.map(({ Key }) => {
-        if (!Key) return Promise.resolve("");
-
-        const finalOutputPath = path.join(__dirname, Key);
-        const dirName = path.dirname(finalOutputPath);
-
-        // Ensure directory exists
-        if (!fs.existsSync(dirName)) fs.mkdirSync(dirName, { recursive: true });
-
-        // Return a promise that resolves when stream ends
-        return new Promise((resolve, reject) => {
+    
+    // 
+    const allPromises = allFiles.Contents?.map(async ({Key}) => {
+        return new Promise(async (resolve) => {
+            if (!Key) {
+                resolve("");
+                return;
+            }
+            const finalOutputPath = path.join(__dirname, Key);
             const outputFile = fs.createWriteStream(finalOutputPath);
-            s3.getObject({ Bucket: "vercel", Key })
-                .createReadStream()
-                .pipe(outputFile)
-                .on("finish", () => resolve(""))
-                .on("error", reject); // Reject on error
-        });
-    }) || [];
+            const dirName = path.dirname(finalOutputPath);
+            if (!fs.existsSync(dirName)){
+                fs.mkdirSync(dirName, { recursive: true });
+            }
+            s3.getObject({
+                Bucket: "vercel",
+                Key
+            }).createReadStream().pipe(outputFile).on("finish", () => {
+                resolve("");
+            })
+        })
+    }) || []
+    console.log("awaiting");
 
-    console.log("Awaiting...");
-
-    try {
-        await Promise.all(allPromises);
-    } catch (err) {
-        console.error(err);
-    }
-
+    await Promise.all(allPromises?.filter(x => x !== undefined));
 }
-
 
 export function copyFinalDist(id: string) {
     const folderPath = path.join(__dirname, `output/${id}/dist`);
@@ -57,7 +53,7 @@ export function copyFinalDist(id: string) {
 const getAllFiles = (folderPath: string) => {
     let response: string[] = [];
 
-    const allFilesAndFolders = fs.readdirSync(folderPath); allFilesAndFolders.forEach(file => {
+    const allFilesAndFolders = fs.readdirSync(folderPath);allFilesAndFolders.forEach(file => {
         const fullFilePath = path.join(folderPath, file);
         if (fs.statSync(fullFilePath).isDirectory()) {
             response = response.concat(getAllFiles(fullFilePath))
@@ -75,5 +71,5 @@ const uploadFile = async (fileName: string, localFilePath: string) => {
         Bucket: "vercel",
         Key: fileName,
     }).promise();
-    return response;
+    console.log(response);
 }
